@@ -41,11 +41,11 @@ fi
 
 # Update nginx configuration with actual domain
 echo "🔧 Updating nginx configuration..."
-sed -i "s/your-domain.com/$DOMAIN_NAME/g" nginx.conf
+sed -i "s/your-domain.com/$DOMAIN_NAME/g" ../configs/nginx.conf
 
 # Copy nginx configuration to sites-available
 echo "📁 Copying nginx configuration..."
-sudo cp nginx.conf /etc/nginx/sites-available/bulk-minter
+sudo cp ../configs/nginx.conf /etc/nginx/sites-available/bulk-minter
 
 # Remove default nginx site if it exists
 if [ -f /etc/nginx/sites-enabled/default ]; then
