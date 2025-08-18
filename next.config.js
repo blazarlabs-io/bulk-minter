@@ -12,12 +12,16 @@ const nextConfig = {
         net: false,
         tls: false,
       };
+
+      // Add node-fetch as external to avoid bundling issues
+      config.externals = config.externals || [];
+      config.externals.push("node-fetch");
     }
     return config;
   },
   // Add experimental features that might help
   experimental: {
-    serverComponentsExternalPackages: [],
+    serverComponentsExternalPackages: ["node-fetch"],
   },
 };
 
