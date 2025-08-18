@@ -1,70 +1,114 @@
 #!/bin/bash
 
-# Bulk Minter Deployment Script
-# Run this script on your server after cloning the repository
+# Bulk Minter - Main Deployment Script
+# This script provides easy access to all deployment tools
 
 set -e  # Exit on any error
 
-echo "🚀 Starting Bulk Minter deployment..."
+echo "🚀 Bulk Minter Deployment Suite"
+echo "================================"
+echo ""
 
-# Check if running as root
-if [[ $EUID -eq 0 ]]; then
-   echo "❌ This script should not be run as root"
-   exit 1
-fi
-
-# Check Node.js version
-echo "📋 Checking Node.js version..."
-NODE_VERSION=$(node --version)
-echo "✅ Node.js version: $NODE_VERSION"
-
-# Check if npm is available
-if ! command -v npm &> /dev/null; then
-    echo "❌ npm is not installed"
+# Check if we're in the right directory
+if [ ! -d "scripts" ]; then
+    echo "❌ Error: 'scripts' directory not found!"
+    echo "   Please run this script from the project root directory."
     exit 1
 fi
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-npm install
+# Function to show usage
+show_usage() {
+    echo "Usage: $0 [COMMAND]"
+    echo ""
+    echo "Available Commands:"
+    echo "  deploy          - Deploy the application with PM2"
+    echo "  https           - Set up HTTPS with Let's Encrypt"
+    echo "  firewall        - Configure firewall (UFW)"
+    echo "  nginx           - Set up nginx configuration"
+    echo "  help            - Show this help message"
+    echo ""
+    echo "Examples:"
+    echo "  $0 deploy       # Deploy the app"
+    echo "  $0 https        # Set up HTTPS"
+    echo "  $0 firewall     # Configure firewall"
+    echo ""
+    echo "Documentation:"
+    echo "  See scripts/docs/ for detailed guides"
+    echo ""
+}
 
-# Build the application
-echo "🔨 Building the application..."
-npm run build
+# Function to run deployment
+run_deploy() {
+    echo "🚀 Running deployment..."
+    ./scripts/scripts/deploy.sh
+}
 
-# Create logs directory
-echo "📁 Creating logs directory..."
-mkdir -p logs
+# Function to run HTTPS setup
+run_https() {
+    echo "🔒 Setting up HTTPS..."
+    ./scripts/scripts/setup-https.sh
+}
 
-# Install PM2 globally if not installed
-if ! command -v pm2 &> /dev/null; then
-    echo "📦 Installing PM2..."
-    npm install -g pm2
-fi
+# Function to run firewall setup
+run_firewall() {
+    echo "🔥 Setting up firewall..."
+    ./scripts/scripts/setup-firewall.sh
+}
 
-# Start the application with PM2
-echo "🚀 Starting the application with PM2..."
-pm2 start ecosystem.config.js
+# Function to run nginx setup
+run_nginx() {
+    echo "🌐 Setting up nginx..."
+    echo "📁 Configuration files are in: scripts/configs/"
+    echo "📖 Documentation is in: scripts/docs/"
+    echo ""
+    echo "To set up nginx manually:"
+    echo "1. Copy scripts/configs/nginx.conf to /etc/nginx/sites-available/bulk-minter"
+    echo "2. Update the server_name in the config"
+    echo "3. Enable the site: sudo ln -s /etc/nginx/sites-available/bulk-minter /etc/nginx/sites-enabled/"
+    echo "4. Test: sudo nginx -t"
+    echo "5. Reload: sudo systemctl reload nginx"
+}
 
-# Save PM2 configuration
-echo "💾 Saving PM2 configuration..."
-pm2 save
+# Function to show project structure
+show_structure() {
+    echo "📁 Project Structure:"
+    echo "====================="
+    echo ""
+    echo "scripts/"
+    echo "├── scripts/          # Deployment scripts"
+    echo "│   ├── deploy.sh     # Main deployment script"
+    echo "│   ├── setup-https.sh # HTTPS setup"
+    echo "│   └── setup-firewall.sh # Firewall setup"
+    echo "├── configs/          # Configuration files"
+    echo "│   ├── nginx.conf    # Nginx configuration"
+    echo "│   ├── ecosystem.config.js # PM2 configuration"
+    echo "│   └── env.production.template # Environment template"
+    echo "└── docs/             # Documentation"
+    echo "    ├── DEPLOYMENT.md # Main deployment guide"
+    echo "    ├── DEPLOYMENT_CHECKLIST.md # Deployment checklist"
+    echo "    └── HTTPS_SETUP.md # HTTPS setup guide"
+    echo ""
+}
 
-# Setup PM2 to start on boot
-echo "🔧 Setting up PM2 to start on boot..."
-pm2 startup
-
-echo "✅ Deployment completed successfully!"
-echo ""
-echo "📋 Next steps:"
-echo "1. Copy nginx.conf to /etc/nginx/sites-available/bulk-minter"
-echo "2. Update the server_name in nginx.conf to your domain"
-echo "3. Enable the nginx site: sudo ln -s /etc/nginx/sites-available/bulk-minter /etc/nginx/sites-enabled/"
-echo "4. Test nginx config: sudo nginx -t"
-echo "5. Reload nginx: sudo systemctl reload nginx"
-echo ""
-echo "🔍 Useful commands:"
-echo "- Check app status: pm2 status"
-echo "- View logs: pm2 logs bulk-minter"
-echo "- Restart app: pm2 restart bulk-minter"
-echo "- Monitor resources: pm2 monit"
+# Main script logic
+case "${1:-help}" in
+    "deploy")
+        run_deploy
+        ;;
+    "https")
+        run_https
+        ;;
+    "firewall")
+        run_firewall
+        ;;
+    "nginx")
+        run_nginx
+        ;;
+    "structure")
+        show_structure
+        ;;
+    "help"|*)
+        show_usage
+        show_structure
+        ;;
+esac
