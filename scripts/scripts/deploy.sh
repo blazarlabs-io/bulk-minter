@@ -44,7 +44,7 @@ fi
 
 # Start the application with PM2
 echo "🚀 Starting the application with PM2..."
-pm2 start ../configs/ecosystem.config.js
+pm2 start ./scripts/configs/ecosystem.config.js
 
 # Save PM2 configuration
 echo "💾 Saving PM2 configuration..."
@@ -86,7 +86,7 @@ fi
 
 echo ""
 echo "📋 Next steps:"
-echo "1. Copy ../configs/nginx.conf to /etc/nginx/sites-available/bulk-minter (if not using HTTPS)"
+echo "1. Copy ./scripts/configs/nginx.conf to /etc/nginx/sites-available/bulk-minter (if not using HTTPS)"
 echo "2. Update the server_name in nginx.conf to your domain"
 echo "3. Enable the nginx site: sudo ln -s /etc/nginx/sites-available/bulk-minter /etc/nginx/sites-enabled/"
 echo "4. Test nginx config: sudo nginx -t"
@@ -103,4 +103,4 @@ echo "- Run: ./setup-https.sh"
 echo "- Or manually: ./setup-firewall.sh then ./setup-https.sh"
 echo ""
 echo "📖 Documentation:"
-echo "- See ../docs/ for detailed guides"
+echo "- See ./scripts/docs/ for detailed guides"
