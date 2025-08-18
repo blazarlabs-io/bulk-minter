@@ -1,0 +1,240 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --retro-bg: #0a0a0a;
+  --retro-surface: #1a1a1a;
+  --retro-surface-2: #2a2a2a;
+  --retro-border: #333333;
+  --retro-accent: #00e6c8;
+  --retro-accent-2: #6b7280;
+  --retro-accent-3: #9ca3af;
+  --retro-text: #e5e7eb;
+  --retro-text-muted: #9ca3af;
+  --retro-success: #10b981;
+  --retro-error: #ef4444;
+  --retro-warning: #f59e0b;
+  --retro-info: #3b82f6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--retro-bg);
+  color: var(--retro-text);
+  font-family: "Inter", sans-serif;
+  line-height: 1.6;
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--retro-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--retro-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--retro-accent);
+}
+
+/* Clean terminal effect */
+.terminal {
+  background: var(--retro-surface);
+  border: 1px solid var(--retro-border);
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Subtle matrix background */
+.matrix-bg {
+  background: linear-gradient(
+    180deg,
+    var(--retro-bg) 0%,
+    rgba(0, 230, 200, 0.02) 50%,
+    var(--retro-bg) 100%
+  );
+}
+
+/* Clean button styles */
+.btn-retro {
+  background: var(--retro-surface);
+  border: 1px solid var(--retro-accent);
+  color: var(--retro-accent);
+  font-family: "Inter", sans-serif;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-retro:hover {
+  background: var(--retro-accent);
+  color: var(--retro-bg);
+  transform: translateY(-1px);
+}
+
+.btn-retro:active {
+  transform: translateY(0);
+}
+
+/* Status indicators */
+.status-pending {
+  background: var(--retro-surface-2);
+  border: 1px solid var(--retro-text-muted);
+  color: var(--retro-text-muted);
+}
+
+.status-minting {
+  background: var(--retro-surface-2);
+  border: 1px solid var(--retro-info);
+  color: var(--retro-info);
+}
+
+.status-success {
+  background: var(--retro-surface-2);
+  border: 1px solid var(--retro-success);
+  color: var(--retro-success);
+}
+
+.status-failed {
+  background: var(--retro-surface-2);
+  border: 1px solid var(--retro-error);
+  color: var(--retro-error);
+}
+
+/* Clean progress bars */
+.progress-bar {
+  background: var(--retro-surface-2);
+  border: 1px solid var(--retro-border);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--retro-accent);
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+/* Loading spinner */
+.retro-spinner {
+  border: 2px solid var(--retro-surface-2);
+  border-top: 2px solid var(--retro-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Text truncation utilities */
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Subtle hover effects */
+.hover-glow:hover {
+  background: var(--retro-surface-2);
+  transition: background 0.2s ease;
+}
+
+/* Status icon styles */
+.status-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: bold;
+}
+
+.status-icon.success {
+  background: var(--retro-success);
+  color: white;
+}
+
+.status-icon.failed {
+  background: var(--retro-error);
+  color: white;
+}
+
+.status-icon.minting {
+  background: var(--retro-info);
+  color: white;
+}
+
+.status-icon.pending {
+  background: var(--retro-text-muted);
+  color: white;
+}
+
+.status-icon.confirming {
+  background: var(--retro-text-muted);
+  color: white;
+}
+
+/* Subtle badges like GitHub/Vercel */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.badge.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--retro-success);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.badge.failed {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--retro-error);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.badge.minting {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--retro-info);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.badge.pending {
+  background: rgba(156, 163, 175, 0.1);
+  color: var(--retro-text-muted);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
+
+.badge.confirming {
+  background: rgba(156, 163, 175, 0.1);
+  color: var(--retro-text-muted);
+  border: 1px solid rgba(156, 163, 175, 0.2);
+}
