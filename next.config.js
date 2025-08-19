@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  // Remove deprecated appDir option
+
   webpack: (config, { isServer }) => {
     if (isServer) {
       // Ensure proper module resolution
@@ -19,6 +19,7 @@ const nextConfig = {
     }
     return config;
   },
+
   // Add experimental features that might help
   experimental: {
     serverComponentsExternalPackages: ["node-fetch"],

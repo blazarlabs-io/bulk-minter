@@ -1,0 +1,12 @@
+/* Test CSS file */
+.test-red {
+  color: red !important;
+  background-color: yellow !important;
+  padding: 20px !important;
+  border: 3px solid blue !important;
+}
+
+.test-large {
+  font-size: 24px !important;
+  font-weight: bold !important;
+}

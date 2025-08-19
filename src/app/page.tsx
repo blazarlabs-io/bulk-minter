@@ -77,6 +77,15 @@ export default function HomePage() {
   if (loading) {
     return (
       <main className="min-h-screen matrix-bg py-12">
+        {/* Test CSS element */}
+        <div
+          className="test-red test-large"
+          style={{ margin: "20px", textAlign: "center" }}
+        >
+          🧪 CSS TEST - If you see this with red text, yellow background, and
+          blue border, CSS is working!
+        </div>
+
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="retro-spinner h-32 w-32 mx-auto"></div>
