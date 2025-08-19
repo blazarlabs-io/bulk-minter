@@ -1,5 +1,5 @@
 export interface IotStorageData {
-  data: any; // We can make this more specific based on the actual response structure
+  data: Record<string, unknown> | null; // Generic object structure for IoT data
   timestamp?: string;
   status?: string;
 }
@@ -7,7 +7,7 @@ export interface IotStorageData {
 export interface IotStorageError {
   message: string;
   code?: string;
-  details?: any;
+  details?: string;
 }
 
 /**
@@ -30,7 +30,9 @@ export async function getIotStorageData(): Promise<IotStorageData | null> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
-        `IoT Storage API request failed: ${response.status} ${response.statusText} - ${errorData.message || "Unknown error"}`,
+        `IoT Storage API request failed: ${response.status} ${
+          response.statusText
+        } - ${errorData.message || "Unknown error"}`
       );
     }
 
@@ -75,7 +77,7 @@ export async function getIotStorageData(): Promise<IotStorageData | null> {
  */
 export async function getIotStorageDataWithRetry(
   maxRetries: number = 3,
-  retryDelay: number = 1000,
+  retryDelay: number = 1000
 ): Promise<IotStorageData | null> {
   let lastError: Error | null = null;
 
@@ -94,7 +96,7 @@ export async function getIotStorageDataWithRetry(
 
       if (attempt < maxRetries) {
         console.warn(
-          `IoT Storage API attempt ${attempt} failed, retrying in ${retryDelay}ms...`,
+          `IoT Storage API attempt ${attempt} failed, retrying in ${retryDelay}ms...`
         );
         await new Promise((resolve) => setTimeout(resolve, retryDelay));
         // Exponential backoff
@@ -105,7 +107,7 @@ export async function getIotStorageDataWithRetry(
 
   console.error(
     `IoT Storage API failed after ${maxRetries} attempts. Last error:`,
-    lastError?.message,
+    lastError?.message
   );
   return null;
 }
@@ -115,7 +117,7 @@ export async function getIotStorageDataWithRetry(
  * @param data - The IoT storage data to validate
  * @returns boolean - True if data is valid for minting
  */
-export function validateIotStorageData(data: any): boolean {
+export function validateIotStorageData(data: unknown): boolean {
   if (!data) return false;
 
   // Add specific validation logic based on your data structure
@@ -130,7 +132,9 @@ export function validateIotStorageData(data: any): boolean {
  * @param data - The IoT storage data
  * @returns string - Formatted string for minting payload
  */
-export function formatIotStorageDataForMinting(data: any): string {
+export function formatIotStorageDataForMinting(
+  data: Record<string, unknown>
+): string {
   try {
     if (!validateIotStorageData(data)) {
       return JSON.stringify({ error: "Invalid IoT data" });

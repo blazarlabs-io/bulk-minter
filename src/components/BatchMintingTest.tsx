@@ -1,7 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Winery, MintingStatus, BatchMintingProgress } from "@/types/minting";
+import {
+  Winery,
+  Wine,
+  MintingStatus,
+  BatchMintingProgress,
+  MintPayload,
+} from "@/types/minting";
 import { BatchMintingProcessor } from "@/services/batchMintingProcessor";
 
 interface BatchMintingTestProps {
@@ -14,7 +20,6 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   const [progress, setProgress] = useState<BatchMintingProgress | null>(null);
   const [results, setResults] = useState<MintingStatus[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const resultsEndRef = useRef<HTMLDivElement>(null);
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
   // Mint history state
@@ -30,7 +35,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   const [mintingMode, setMintingMode] = useState<"bulk" | "single">("bulk");
   const [selectedWinery, setSelectedWinery] = useState<string>("");
   const [selectedWine, setSelectedWine] = useState<string>("");
-  const [availableWines, setAvailableWines] = useState<any[]>([]);
+  const [availableWines, setAvailableWines] = useState<Wine[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Environment toggle state
@@ -41,7 +46,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   // Single minting flow state
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [imageProcessingStep, setImageProcessingStep] = useState<string>("");
-  const [mintPayload, setMintPayload] = useState<any>(null);
+  const [mintPayload, setMintPayload] = useState<MintPayload | null>(null);
   const [mintResult, setMintResult] = useState<{
     txId: string;
     tokenRefId: string;
@@ -112,15 +117,20 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     message: string;
   } | null>(null);
 
-  // Auto-scroll to bottom when new results are added
-  const scrollToBottom = () => {
-    resultsEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Auto-scroll to bottom when new results are added (DISABLED - user should control scrolling)
+  // const scrollToBottom = () => {
+  //   resultsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  // };
 
   // Auto-scroll terminal console to bottom when new logs are added
   const scrollConsoleToBottom = () => {
     if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+      // Only scroll the console container, not the entire page
+      const consoleContainer =
+        consoleEndRef.current.closest(".overflow-y-auto");
+      if (consoleContainer) {
+        consoleContainer.scrollTop = consoleContainer.scrollHeight;
+      }
     }
   };
 
@@ -170,9 +180,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     setToast(null);
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [progress?.mintingStatuses]);
+  // useEffect(() => {
+  //   scrollToBottom();
+  // }, [progress?.mintingStatuses]);
 
   useEffect(() => {
     scrollConsoleToBottom();
@@ -222,7 +232,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
         processor.stopBatchMinting();
       }
     };
-  }, [processor, isProcessing]);
+  }, [processor, isProcessing, wasStopped]);
 
   const handleStartMinting = async () => {
     try {
@@ -271,7 +281,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       }
 
       console.log(
-        `Starting batch minting with ${testWineries.length} wineries${isResuming ? ` (resuming from ${startIndex})` : ""}`
+        `Starting batch minting with ${testWineries.length} wineries${
+          isResuming ? ` (resuming from ${startIndex})` : ""
+        }`
       );
 
       // Filter out only successfully minted assets, allow failed/pending to be retried
@@ -308,7 +320,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       );
       addConsoleLog(
         "info",
-        `🔄 Resume mode: ${isResuming ? `Yes (from index ${startIndex})` : "No"}`
+        `🔄 Resume mode: ${
+          isResuming ? `Yes (from index ${startIndex})` : "No"
+        }`
       );
 
       if (environmentMode === "main") {
@@ -371,7 +385,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
 
   // Main network minting function with sequential processing and Blockfrost confirmation
   const startMainNetworkMinting = async (
-    wineries: any[],
+    wineries: Winery[],
     startIndex: number = 0
   ) => {
     try {
@@ -382,12 +396,12 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       }
 
       // Flatten all wines into a single array for sequential processing
-      const allWines: Array<{ winery: any; wine: any; index: number }> = [];
+      const allWines: Array<{ winery: Winery; wine: Wine; index: number }> = [];
       let globalIndex = 0;
 
-      wineries.forEach((winery: any) => {
+      wineries.forEach((winery: Winery) => {
         if (winery.wines) {
-          winery.wines.forEach((wine: any) => {
+          winery.wines.forEach((wine: Wine) => {
             allWines.push({ winery, wine, index: globalIndex++ });
           });
         }
@@ -414,12 +428,14 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
         const wineData = winesToProcess[i];
         if (!wineData) continue;
 
-        const { winery, wine, index } = wineData;
+        const { winery, wine, index: _index } = wineData;
         const globalWineIndex = startIndex + i;
 
         addConsoleLog(
           "step",
-          `🚀 Processing wine ${globalWineIndex + 1}/${winesToProcess.length}: ${wine.generalInfo?.collectionName || wine.id}`
+          `🚀 Processing wine ${globalWineIndex + 1}/${
+            winesToProcess.length
+          }: ${wine.generalInfo?.collectionName || wine.id}`
         );
         addConsoleLog("info", `🏭 Winery: ${winery.info?.name || winery.id}`);
         addConsoleLog(
@@ -428,7 +444,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
         );
         addConsoleLog(
           "info",
-          `📍 Progress: ${globalWineIndex + 1} of ${winesToProcess.length} wines`
+          `📍 Progress: ${globalWineIndex + 1} of ${
+            winesToProcess.length
+          } wines`
         );
 
         try {
@@ -482,7 +500,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
             addToMintHistory(wine.id, confirmingStatus);
             addConsoleLog(
               "success",
-              `✅ Wine ${globalWineIndex + 1} minted successfully! TX: ${result.txId}`
+              `✅ Wine ${globalWineIndex + 1} minted successfully! TX: ${
+                result.txId
+              }`
             );
 
             // Check stop flag before starting confirmation
@@ -503,7 +523,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
             // Start monitoring transaction status
             addConsoleLog(
               "step",
-              `🔍 Starting blockchain confirmation monitoring for wine ${globalWineIndex + 1}...`
+              `🔍 Starting blockchain confirmation monitoring for wine ${
+                globalWineIndex + 1
+              }...`
             );
 
             try {
@@ -533,7 +555,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
               if (stoppedRef.current) {
                 addConsoleLog(
                   "warning",
-                  `🛑 Stopping after confirming wine ${globalWineIndex + 1} - not proceeding to next wine`
+                  `🛑 Stopping after confirming wine ${
+                    globalWineIndex + 1
+                  } - not proceeding to next wine`
                 );
                 break;
               }
@@ -564,7 +588,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
               if (stoppedRef.current) {
                 addConsoleLog(
                   "warning",
-                  `🛑 Stopping after confirmation error for wine ${globalWineIndex + 1} - not proceeding to next wine`
+                  `🛑 Stopping after confirmation error for wine ${
+                    globalWineIndex + 1
+                  } - not proceeding to next wine`
                 );
                 break;
               }
@@ -624,7 +650,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
           if (stoppedRef.current) {
             addConsoleLog(
               "warning",
-              `🛑 Stopping after processing error for wine ${globalWineIndex + 1} - not proceeding to next wine`
+              `🛑 Stopping after processing error for wine ${
+                globalWineIndex + 1
+              } - not proceeding to next wine`
             );
             break;
           }
@@ -657,7 +685,10 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   };
 
   // Process a single wine for main network minting (reuses single minting logic)
-  const processSingleWineForMainNetwork = async (winery: any, wine: any) => {
+  const processSingleWineForMainNetwork = async (
+    winery: Winery,
+    wine: Wine
+  ) => {
     try {
       // Check if we should stop before processing
       if (wasStopped) {
@@ -881,21 +912,22 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     });
   };
 
-  const isAssetAlreadyMinted = (assetId: string): boolean => {
-    const existingStatus = mintHistory.get(assetId);
-    // Only consider it "already minted" if it was successfully completed
-    return existingStatus?.status === "success";
-  };
+  // TODO: These functions are defined but not currently used - uncomment when needed
+  // const isAssetAlreadyMinted = (assetId: string): boolean => {
+  //   const existingStatus = mintHistory.get(assetId);
+  //   // Only consider it "already minted" if it was successfully completed
+  //   return existingStatus?.status === "success";
+  // };
 
-  const getMintHistoryForWinery = (wineryId: string): MintingStatus[] => {
-    return Array.from(mintHistory.values()).filter(
-      (item) => item.wineryId === wineryId
-    );
-  };
+  // const getMintHistoryForWinery = (wineryId: string): MintingStatus[] => {
+  //   return Array.from(mintHistory.values()).filter(
+  //     (item) => item.wineryId === wineryId
+  //   );
+  // };
 
-  const getMintHistoryForWine = (wineId: string): MintingStatus | undefined => {
-    return mintHistory.get(wineId);
-  };
+  // const getMintHistoryForWine = (wineId: string): MintingStatus | undefined => {
+  //   return mintHistory.get(wineId);
+  // };
 
   const clearMintHistory = () => {
     setMintHistory(new Map());
@@ -946,17 +978,18 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     }
   };
 
-  // Handle opening transaction in Cardano explorer
-  const openInExplorer = (txId: string) => {
-    const explorerUrl = `https://preview.cardanoscan.io/transaction/${txId}`;
-    window.open(explorerUrl, "_blank");
-  };
+  // TODO: These functions are defined but not currently used - uncomment when needed
+  // // Handle opening transaction in Cardano explorer
+  // const openInExplorer = (txId: string) => {
+  //   const explorerUrl = `https://preview.cardanoscan.io/transaction/${txId}`;
+  //   window.open(explorerUrl, "_blank");
+  // };
 
-  // Handle opening token in cexplorer.io
-  const openTokenInExplorer = (tokenRefId: string) => {
-    const explorerUrl = `https://preview.cexplorer.io/asset/${tokenRefId}`;
-    window.open(explorerUrl, "_blank");
-  };
+  // // Handle opening token in cexplorer.io
+  // const openTokenInExplorer = (tokenRefId: string) => {
+  //   const explorerUrl = `https://preview.cexplorer.io/asset/${tokenRefId}`;
+  //   window.open(explorerUrl, "_blank");
+  // };
 
   // Build mint results JSON (only successful mints)
   const buildMintResults = () => {
@@ -976,7 +1009,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
           timestamp:
             item.timestamp instanceof Date
               ? item.timestamp.toISOString()
-              : new Date(item.timestamp as any).toISOString(),
+              : new Date(item.timestamp as string | number).toISOString(),
           network: environmentMode,
         };
       });
@@ -1002,7 +1035,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     } catch (err) {
       addConsoleLog(
         "error",
-        `❌ Failed to generate results JSON: ${err instanceof Error ? err.message : "Unknown error"}`
+        `❌ Failed to generate results JSON: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`
       );
     }
   };
@@ -1039,7 +1074,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMsg = `Failed to download image: ${errorData.error || response.statusText}`;
+        const errorMsg = `Failed to download image: ${
+          errorData.error || response.statusText
+        }`;
         addConsoleLog("error", `❌ ${errorMsg}`);
         throw new Error(errorMsg);
       }
@@ -1056,7 +1093,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       return file;
     } catch (error) {
       console.error("Error downloading image:", error);
-      const errorMsg = `Failed to download image: ${error instanceof Error ? error.message : "Unknown error"}`;
+      const errorMsg = `Failed to download image: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`;
       addConsoleLog("error", `❌ ${errorMsg}`);
       throw new Error(errorMsg);
     }
@@ -1096,7 +1135,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMsg = `IPFS upload failed: ${errorData.error || response.statusText}`;
+        const errorMsg = `IPFS upload failed: ${
+          errorData.error || response.statusText
+        }`;
         addConsoleLog("error", `❌ ${errorMsg}`);
         throw new Error(errorMsg);
       }
@@ -1131,14 +1172,19 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       return ipfsUrl; // Return the original ipfs://<hash> URL
     } catch (error) {
       console.error("Error uploading to IPFS:", error);
-      const errorMsg = `IPFS upload failed: ${error instanceof Error ? error.message : "Unknown error"}`;
+      const errorMsg = `IPFS upload failed: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`;
       addConsoleLog("error", `❌ ${errorMsg}`);
       throw new Error(errorMsg);
     }
   };
 
   // Create mint payload object
-  const createMintPayload = async (wine: any, ipfsImageUrl: string) => {
+  const createMintPayload = async (
+    wine: Wine,
+    ipfsImageUrl: string
+  ): Promise<MintPayload> => {
     addConsoleLog("step", `🔨 Creating mint payload...`);
     addConsoleLog("info", `🍷 Wine: ${wine.generalInfo.collectionName}`);
     addConsoleLog("info", `🏭 Winery: ${wine.generalInfo.wineryName}`);
@@ -1169,7 +1215,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     } catch (error) {
       addConsoleLog(
         "warning",
-        `⚠️ Failed to fetch IoT sensor data: ${error instanceof Error ? error.message : "Unknown error"}`
+        `⚠️ Failed to fetch IoT sensor data: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
       addConsoleLog("info", `📊 Using empty object for mdata field`);
       iotData = {};
@@ -1211,7 +1259,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   const stopMonitoring = (reason?: string, keepStatus: boolean = false) => {
     addConsoleLog(
       "warning",
-      `🛑 Stopping transaction monitoring... ${reason ? `Reason: ${reason}` : ""}`
+      `🛑 Stopping transaction monitoring... ${
+        reason ? `Reason: ${reason}` : ""
+      }`
     );
     if (monitoringCleanup) {
       monitoringCleanup();
@@ -1246,7 +1296,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
     setStatusCheckCount(0);
 
     let isActive = true; // Local flag to control the monitoring loop
-    let sessionId = Date.now(); // Unique session identifier
+    const sessionId = Date.now(); // Unique session identifier
 
     const checkStatus = async (): Promise<void> => {
       if (!isActive) return; // Stop if monitoring was cancelled
@@ -1412,7 +1462,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
   };
 
   // Mint token using the mint-batch API
-  const mintToken = async (payload: any) => {
+  const mintToken = async (payload: MintPayload) => {
     addConsoleLog("step", `🚀 Step 5: Minting token via mint-batch API...`);
 
     try {
@@ -1435,17 +1485,21 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
         let errorData;
         try {
           errorData = await response.json();
-        } catch (parseError) {
+        } catch {
           const errorText = await response.text();
           errorData = { error: errorText || "Failed to parse error response" };
         }
 
-        const errorMsg = `Minting failed: ${response.status} ${response.statusText} - ${errorData.error || "Unknown error"}`;
+        const errorMsg = `Minting failed: ${response.status} ${
+          response.statusText
+        } - ${errorData.error || "Unknown error"}`;
         addConsoleLog("error", `❌ ${errorMsg}`);
         addConsoleLog("error", `📊 Response status: ${response.status}`);
         addConsoleLog(
           "error",
-          `📊 Response headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()))}`
+          `📊 Response headers: ${JSON.stringify(
+            Object.fromEntries(response.headers.entries())
+          )}`
         );
 
         throw new Error(errorMsg);
@@ -1457,7 +1511,7 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
         throw new Error("Invalid minting response: missing txId or tokenRefId");
       }
 
-      addConsoleLog("success", `✅ Token minted successfully!`);
+      addConsoleLog("success", `✅ Transaction submitted successfully!`);
       addConsoleLog("info", `🔗 Transaction ID: ${result.txId}`);
       addConsoleLog("info", `🏷️ Token Reference ID: ${result.tokenRefId}`);
 
@@ -1503,7 +1557,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       addConsoleLog("step", `🚀 Starting Single Wine Processing Flow...`);
       addConsoleLog(
         "info",
-        `🌍 Environment: ${environmentMode === "test" ? "Test Mode" : "Main Network"}`
+        `🌍 Environment: ${
+          environmentMode === "test" ? "Test Mode" : "Main Network"
+        }`
       );
 
       const winery = wineries.find((w) => w.id === selectedWinery);
@@ -1584,13 +1640,15 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
       addConsoleLog("success", `🎉 Single Wine Processing & Minting Complete!`);
       addConsoleLog(
         "info",
-        `📋 Token minted successfully with txId: ${mintResult.txId}`
+        `📋 Transaction submitted successfully with txId: ${mintResult.txId}`
       );
       addConsoleLog("info", `🏷️ Token Reference ID: ${mintResult.tokenRefId}`);
 
-      showToast("success", "Token minted successfully!");
+      showToast("success", "Transaction submitted successfully!");
 
-      setImageProcessingStep("Token minted successfully! Check results below.");
+      setImageProcessingStep(
+        "Transaction submitted successfully! Check results below."
+      );
     } catch (error) {
       const errorMsg =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -1636,7 +1694,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
 
       <div className="terminal p-6 w-full">
         <div
-          className={`flex items-center justify-between ${isCollapsed ? "mb-0" : "mb-4"}`}
+          className={`flex items-center justify-between ${
+            isCollapsed ? "mb-0" : "mb-4"
+          }`}
         >
           <h2 className="text-lg font-medium text-[var(--retro-text-muted)]">
             Minting Test
@@ -1684,7 +1744,11 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
               <div className="bg-[var(--retro-surface-2)] border border-[var(--retro-border)] rounded-lg p-3">
                 <div className="flex items-center space-x-2">
                   <div
-                    className={`w-2 h-2 rounded-full ${environmentMode === "test" ? "bg-[var(--retro-warning)]" : "bg-[var(--retro-accent)]"}`}
+                    className={`w-2 h-2 rounded-full ${
+                      environmentMode === "test"
+                        ? "bg-[var(--retro-warning)]"
+                        : "bg-[var(--retro-accent)]"
+                    }`}
                   ></div>
                   <span className="text-sm text-[var(--retro-text-muted)]">
                     {environmentMode === "test"
@@ -1742,9 +1806,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                       <div className="w-2 h-2 bg-[var(--retro-warning)] rounded-full mt-2 flex-shrink-0"></div>
                       <div className="text-xs text-[var(--retro-text-muted)]">
                         <strong>Note:</strong> Only wines with Firebase Storage
-                        URLs (starting with "https://") can be processed. Wines
-                        with relative paths like "/images/wine.jpg" will show an
-                        error.
+                        URLs (starting with &quot;https://&quot;) can be
+                        processed. Wines with relative paths like
+                        &quot;/images/wine.jpg&quot; will show an error.
                       </div>
                     </div>
                   </div>
@@ -1963,14 +2027,14 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                     {isProcessingImage
                       ? "Processing..."
                       : isMinting
-                        ? "Minting..."
-                        : isMonitoring
-                          ? "Confirming..."
-                          : transactionStatus === "complete"
-                            ? "✅ Token Minted Successfully"
-                            : environmentMode === "test"
-                              ? "Process Single Wine (Test)"
-                              : "Process Single Wine (Main)"}
+                      ? "Minting..."
+                      : isMonitoring
+                      ? "Confirming..."
+                      : transactionStatus === "complete"
+                      ? "✅ Transaction Submitted Successfully"
+                      : environmentMode === "test"
+                      ? "Process Single Wine (Test)"
+                      : "Process Single Wine (Main)"}
                   </button>
 
                   {isProcessing &&
@@ -2039,14 +2103,14 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                             <div className="text-sm text-[var(--retro-text-muted)]">
                               Status:{" "}
                               {transactionStatus === "complete"
-                                ? "✅ Token Minted Successfully"
+                                ? "✅ Transaction Submitted Successfully"
                                 : transactionStatus === "error"
-                                  ? "❌ Error Minting Token"
-                                  : transactionStatus === "pending"
-                                    ? "⏳ Confirming on chain..."
-                                    : mintResult
-                                      ? "🚀 Minting in progress..."
-                                      : "Ready for minting"}
+                                ? "❌ Error Minting Token"
+                                : transactionStatus === "pending"
+                                ? "⏳ Confirming on chain..."
+                                : mintResult
+                                ? "🚀 Minting in progress..."
+                                : "Ready for minting"}
                             </div>
                             {transactionStatus && (
                               <div className="text-xs text-[var(--retro-text-muted)] mt-1">
@@ -2139,54 +2203,6 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                     </div>
                   </div>
                 )}
-
-                {/* Terminal Console */}
-                <div className="bg-[var(--retro-bg)] border border-[var(--retro-border)] rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-[var(--retro-text)]">
-                      🖥️ Terminal Console
-                    </h4>
-                    <button
-                      onClick={clearConsole}
-                      className="text-xs text-[var(--retro-text-muted)] hover:text-[var(--retro-text)] transition-colors px-2 py-1 rounded border border-[var(--retro-border)] hover:border-[var(--retro-text)]"
-                    >
-                      Clear Console
-                    </button>
-                  </div>
-                  <div
-                    id="terminal-console"
-                    className="bg-[var(--retro-surface)] border border-[var(--retro-border)] rounded-lg p-3 h-64 overflow-y-auto font-mono text-xs"
-                  >
-                    {consoleLogs.length === 0 ? (
-                      <div className="text-[var(--retro-text-muted)] italic">
-                        Console ready. Start processing to see logs...
-                      </div>
-                    ) : (
-                      consoleLogs.map((log, index) => (
-                        <div key={index} className="mb-1">
-                          <span className="text-[var(--retro-text-muted)] mr-2">
-                            [{log.timestamp.toLocaleTimeString()}]
-                          </span>
-                          <span
-                            className={`${
-                              log.type === "error"
-                                ? "text-[var(--retro-error)]"
-                                : log.type === "success"
-                                  ? "text-[var(--retro-success)]"
-                                  : log.type === "warning"
-                                    ? "text-[var(--retro-warning)]"
-                                    : log.type === "step"
-                                      ? "text-[var(--retro-accent)]"
-                                      : "text-[var(--retro-text)]"
-                            }`}
-                          >
-                            {log.message}
-                          </span>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -2282,7 +2298,11 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                   </h3>
                   <div className="flex items-center space-x-2">
                     <div
-                      className={`w-2 h-2 rounded-full ${environmentMode === "test" ? "bg-[var(--retro-warning)]" : "bg-[var(--retro-error)]"}`}
+                      className={`w-2 h-2 rounded-full ${
+                        environmentMode === "test"
+                          ? "bg-[var(--retro-warning)]"
+                          : "bg-[var(--retro-error)]"
+                      }`}
                     ></div>
                     <span className="text-sm text-[var(--retro-text-muted)]">
                       {environmentMode === "test"
@@ -2358,7 +2378,11 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                       <div
                         className="progress-bar-fill transition-all duration-300"
                         style={{
-                          width: `${(progress.processedWineries / progress.totalWineries) * 100}%`,
+                          width: `${
+                            (progress.processedWineries /
+                              progress.totalWineries) *
+                            100
+                          }%`,
                         }}
                       ></div>
                     </div>
@@ -2378,7 +2402,10 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                       <div
                         className="progress-bar-fill transition-all duration-300"
                         style={{
-                          width: `${(progress.processedWines / progress.totalWines) * 100}%`,
+                          width: `${
+                            (progress.processedWines / progress.totalWines) *
+                            100
+                          }%`,
                         }}
                       ></div>
                     </div>
@@ -2426,12 +2453,12 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                           log.type === "error"
                             ? "text-[var(--retro-error)]"
                             : log.type === "success"
-                              ? "text-[var(--retro-text)]"
-                              : log.type === "warning"
-                                ? "text-[var(--retro-warning)]"
-                                : log.type === "step"
-                                  ? "text-[var(--retro-accent)] font-semibold"
-                                  : "text-[var(--retro-text)]"
+                            ? "text-[var(--retro-text)]"
+                            : log.type === "warning"
+                            ? "text-[var(--retro-warning)]"
+                            : log.type === "step"
+                            ? "text-[var(--retro-accent)] font-semibold"
+                            : "text-[var(--retro-text)]"
                         }`}
                       >
                         <span className="text-[var(--retro-text-muted)]">
@@ -2485,7 +2512,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3 flex-1 min-w-0">
                             <div
-                              className={`status-icon ${getStatusClass(result.status)}`}
+                              className={`status-icon ${getStatusClass(
+                                result.status
+                              )}`}
                             >
                               {getStatusIcon(result.status)}
                             </div>
@@ -2521,7 +2550,9 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
 
                           <div className="flex flex-col items-end space-y-1 ml-4">
                             <div
-                              className={`badge ${getStatusClass(result.status)}`}
+                              className={`badge ${getStatusClass(
+                                result.status
+                              )}`}
                             >
                               {result.status}
                             </div>
@@ -2656,8 +2687,6 @@ export default function BatchMintingTest({ wineries }: BatchMintingTestProps) {
                         </div>
                       </div>
                     ))}
-                    {/* Invisible div for auto-scrolling */}
-                    <div ref={resultsEndRef} />
                   </div>
                 </div>
               )}

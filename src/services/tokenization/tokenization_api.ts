@@ -1,5 +1,5 @@
 import { env, checkRequiredEnvVars } from "@/env";
-import { AssetResponse, AddImageResponse, MintBatchResponse } from "./types";
+import { AssetResponse, MintBatchResponse } from "./types";
 
 // Check if we're in the browser
 const isBrowser = typeof window !== "undefined";
@@ -27,7 +27,7 @@ const handle_response = async <T>(response: Response): Promise<T> => {
 
   try {
     return await response.json();
-  } catch (error) {
+  } catch {
     throw new Error("Failed to parse API response");
   }
 };
@@ -107,7 +107,9 @@ export class TokenizationApiService {
    * Mint batch of assets
    * POST /mint-batch
    */
-  async mint_batch(batch_data: any): Promise<MintBatchResponse> {
+  async mint_batch(
+    batch_data: Record<string, unknown>
+  ): Promise<MintBatchResponse> {
     const url = `${this.base_url}/mint-batch`;
 
     const response = await fetch(url, {

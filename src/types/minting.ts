@@ -8,6 +8,7 @@ export interface Wine {
     collectionName: string;
     type: string;
     vintage?: string;
+    image?: string;
     grapeVarieties: Array<{
       name: string;
       percentage: string;
@@ -55,4 +56,18 @@ export interface BatchMintingProgress {
   processedWines: number;
   currentWine: string;
   mintingStatuses: MintingStatus[];
+}
+
+export interface MintPayload {
+  batch_data: {
+    info: string;
+    mdata: string;
+    minsrc: string;
+  };
+  batch_meta: {
+    description: string;
+    image: string;
+    name: string;
+  };
+  batch_quantity: number[];
 }

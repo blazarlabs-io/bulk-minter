@@ -1,6 +1,6 @@
 export interface AssetResponse {
   success: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
   message?: string;
   error?: string;
 }
